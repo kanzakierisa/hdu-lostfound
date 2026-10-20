@@ -18,9 +18,9 @@ import (
 	"hdu-lostfound/internal/pkg/apperr"
 )
 
-// Body 是统一响应体的数据结构，与 SPEC 第 8.1 节一致。
+// Body 是统一响应体的数据结构，与 设计规格 第 8.1 节一致。
 //
-// 注意：Data 刻意不加 omitempty —— SPEC 要求 data 为 null 时字段必须存在
+// 注意：Data 刻意不加 omitempty —— 设计规格 要求 data 为 null 时字段必须存在
 // 并显式返回 null，而不是整个键消失。
 type Body struct {
 	Code    int    `json:"code"`    // 业务错误码，0 表示成功

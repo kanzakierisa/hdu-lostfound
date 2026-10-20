@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// OptionalAuth 返回软鉴权中间件（SPEC 8.4「软鉴权说明」）。
+// OptionalAuth 返回软鉴权中间件（设计规格 8.4「软鉴权说明」）。
 //
 // 与 Auth 的唯一区别在于**失败不中断请求**：
 //

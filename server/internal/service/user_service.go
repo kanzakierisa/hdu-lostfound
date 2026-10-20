@@ -34,7 +34,7 @@ func (s *UserService) Me(u *model.User) *model.UserDTO {
 //
 // ⚠️ role / username / password_hash 不可通过本接口修改：
 // UpdateMeReq 结构体里根本没有这些字段，JSON 解码时会被直接丢弃，
-// 即使请求体带了 "role":"admin" 也不会生效（SPEC 10 安全基线）。
+// 即使请求体带了 "role":"admin" 也不会生效（设计规格 10 安全基线）。
 func (s *UserService) UpdateMe(ctx context.Context, u *model.User, req model.UpdateMeReq) (*model.UserDTO, error) {
 	// 以现有值作为基线，只被请求覆盖的字段才会变化。
 	nickname := u.Nickname

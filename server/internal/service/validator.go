@@ -1,6 +1,6 @@
 // Package service 承载业务规则。
 //
-// 分层职责（SPEC 3.3）：service 层不碰 HTTP（不知道 gin.Context、
+// 分层职责（设计规格 3.3）：service 层不碰 HTTP（不知道 gin.Context、
 // 不写状态码），也不写 SQL（只调用 store）。它只做「业务判断 + 编排」，
 // 因此可以脱离 HTTP 与数据库被单元测试。
 package service
@@ -12,14 +12,14 @@ import (
 	"hdu-lostfound/internal/pkg/password"
 )
 
-// usernamePattern 是用户名的合法字符集与长度约束（SPEC 02 第 5 节）。
+// usernamePattern 是用户名的合法字符集与长度约束（设计规格 02 第 5 节）。
 //
 // 只允许字母 / 数字 / 下划线，长度 3–32。
 // 刻意不允许中文与空格：用户名是登录凭据，需要跨终端（含 URL、命令行）
 // 无歧义地输入，中文会引入编码与全半角问题；展示名交给 nickname。
 var usernamePattern = regexp.MustCompile(`^[A-Za-z0-9_]{3,32}$`)
 
-// minPasswordLen 是口令长度下界（SPEC 02 第 5 节）。
+// minPasswordLen 是口令长度下界（设计规格 02 第 5 节）。
 //
 // 上界不在这里再写一份：它由 bcrypt 的 72 字节截断决定，收口在
 // password.MaxPlainLength —— 两处各写一个 64，改一处就会漏另一处。

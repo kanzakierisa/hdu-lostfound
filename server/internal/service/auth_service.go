@@ -35,7 +35,7 @@ func NewAuthService(users *store.UserStore, tokens *jwtutil.Manager) *AuthServic
 
 // Register 注册新用户。
 //
-// 流程（SPEC 02 第 5 节）：校验用户名与口令 → 生成 bcrypt 哈希 → 插入。
+// 流程（设计规格 02 第 5 节）：校验用户名与口令 → 生成 bcrypt 哈希 → 插入。
 // 注册成功**不签发 token**（不自动登录），前端收到 user 后引导用户主动登录。
 //
 // 重名判定不靠「先查再插」——那在并发下有 TOCTOU 竞态；

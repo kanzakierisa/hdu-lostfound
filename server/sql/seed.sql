@@ -14,7 +14,7 @@
 --
 -- 帖子的条数不是随手凑的，它直接决定后端能不能被验收：
 --
---   * 总数 16 条 —— SPEC 任务的「基础要求」要练 WHERE / LIKE / ORDER BY /
+--   * 总数 16 条 —— 项目的「基础要求」要练 WHERE / LIKE / ORDER BY /
 --     LIMIT / OFFSET，样本太少则分页（pageSize=5 时不足 3 页）根本试不出来。
 --     阶段文件 04 的验收明确要求 total >= 12。
 --   * 类型 8 lost + 8 found —— 两侧均衡，避免「按类型筛选」看不出差异。
@@ -72,7 +72,7 @@ INSERT INTO posts (id, user_id, type, title, category, location, happened_at, de
    DATE_SUB(UTC_TIMESTAMP(), INTERVAL 312 HOUR), DATE_SUB(UTC_TIMESTAMP(), INTERVAL 100 HOUR)),
 
   -- ---------- bob（用户 2） ----------
-  -- 4 号帖有一条 approved 认领（见下方 claims），按 SPEC 7.1「审核通过 → 帖子自动置 matched」，
+  -- 4 号帖有一条 approved 认领（见下方 claims），按 设计规格 7.1「审核通过 → 帖子自动置 matched」，
   -- 因此这里的状态必须是 matched，否则演示数据本身就违反了状态机联动规则。
   (4, 2, 'found', '捡到一张校园卡', 'card', '下沙校区图书馆一楼大厅',
    DATE_SUB(UTC_TIMESTAMP(), INTERVAL 293 HOUR),
@@ -143,7 +143,7 @@ INSERT INTO posts (id, user_id, type, title, category, location, happened_at, de
 
 -- ============================ 认领记录 ============================
 -- 2 条：1 条 pending（待审核）、1 条 approved（已通过，带凭证码）。
--- 两条都挂在 found 帖上，符合 SPEC 7.3「只有 found 帖可被认领」，
+-- 两条都挂在 found 帖上，符合 设计规格 7.3「只有 found 帖可被认领」，
 -- 且 claimant 与帖主不同人，符合「不能认领自己发的帖子」。
 INSERT INTO claims (id, post_id, claimant_id, proof, status, voucher_code, reject_reason, reviewed_at, created_at) VALUES
   -- alice 认领 bob 的 5 号「捡到钥匙」帖 —— pending，待 bob 审核
@@ -152,7 +152,7 @@ INSERT INTO claims (id, post_id, claimant_id, proof, status, voucher_code, rejec
    DATE_SUB(UTC_TIMESTAMP(), INTERVAL 262 HOUR)),
 
   -- alice 认领 bob 的 4 号「捡到校园卡」帖 —— approved（带凭证码）
-  -- 对应帖子已按 SPEC 7.1 的联动规则 open → matched（见上方 4 号帖的 status）
+  -- 对应帖子已按 设计规格 7.1 的联动规则 open → matched（见上方 4 号帖的 status）
   (2, 4, 1, '卡套背面确实有皮卡丘贴纸，我的学号尾号是 0421。',
    'approved', 'K7M2QX', '',
    DATE_SUB(UTC_TIMESTAMP(), INTERVAL 285 HOUR),

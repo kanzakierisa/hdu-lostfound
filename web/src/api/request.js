@@ -62,7 +62,7 @@ request.interceptors.response.use(
     // （1002 → 401、1003 → 403、1004 → 404、1005 → 409 …）。
     // 这类响应会被 axios 判定为失败，走的是这个分支，而不是上面的成功分支。
     // 因此必须先按统一响应体解出 code，否则 1002 会被笼统报成「网络异常」，
-    // token 清不掉、也跳不回登录页（SPEC 05 验收第 19 条正是这一条）。
+    // token 清不掉、也跳不回登录页（设计规格 05 验收第 19 条正是这一条）。
     const body = err.response?.data
     if (body && typeof body === 'object' && typeof body.code === 'number') {
       if (body.code === 1002) return handleUnauthorized(body.message)

@@ -42,7 +42,7 @@ export const useUserStore = defineStore('user', () => {
     return data.user
   }
 
-  /** 注册：仅注册，不自动登录（SPEC 要求注册后回登录 Tab 手动登录） */
+  /** 注册：仅注册，不自动登录（设计规格 要求注册后回登录 Tab 手动登录） */
   async function register(payload) {
     return authApi.register(payload)
   }

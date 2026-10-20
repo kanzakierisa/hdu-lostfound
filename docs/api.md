@@ -1,7 +1,7 @@
 # API 文档
 
 > 校园失物招领系统后端接口文档。
-> 共 **20** 个接口，全部实现完毕，均有真实 curl 实测记录。
+> 共 **19 个业务接口**（另含 1 个健康检查 `/api/health`），全部实现完毕，均有真实 curl 实测记录。
 
 ---
 
@@ -291,7 +291,7 @@ pending ──approve──→ approved ──redeem──→ redeemed     （�
 | 20 | 匹配 | GET `/api/posts/:id/matches` | 软鉴权 | 返回 `{list: [{post, score, reasons[]}]}`，最多 5 条 |
 
 > 表内共 20 行：其中第 19 行 `POST /api/claims/:id/redeem` 与第 20 行匹配接口属于认领/匹配模块；
-> **`/api/health` 与 19 个业务接口合计为任务要求的接口全集**（健康检查不计入业务接口数）。
+> **`/api/health` 与 19 个业务接口合计为完整的接口全集**（健康检查不计入业务接口数）。
 
 ---
 
@@ -450,7 +450,7 @@ curl -X POST http://localhost:8080/api/auth/login \
 
 #### POST /api/auth/logout
 
-登出。JWT 是无状态的，服务端**不维护 token 黑名单**（见 SPEC 第 12 章「明确不做」），
+登出。JWT 是无状态的，服务端**不维护 token 黑名单**（见 设计规格第 12 章「明确不做」），
 本接口只返回成功，实际登出由前端清除本地 token 完成。
 
 - 鉴权：是
@@ -661,7 +661,7 @@ curl -X POST http://localhost:8080/api/posts \
 
 #### GET /api/posts
 
-帖子列表（浏览 / 搜索 / 筛选）。这是任务原文点名要练习 `WHERE / LIKE / ORDER BY / LIMIT / OFFSET` 的接口。
+帖子列表（浏览 / 搜索 / 筛选）。这是本项目重点练习 `WHERE / LIKE / ORDER BY / LIMIT / OFFSET` 的接口。
 
 - 鉴权：**否**（游客可访问；游客的 `can_edit` / `can_claim` 恒为 `false`）
 
@@ -729,7 +729,7 @@ curl "http://localhost:8080/api/posts?pageSize=9999"
 
 #### GET /api/posts/:id
 
-帖子详情。按 SPEC 7.2 的三级规则处理联系方式可见性。
+帖子详情。按 设计规格 7.2 的三级规则处理联系方式可见性。
 
 - 鉴权：**软鉴权**（有无 token 都放行；非法 token 静默降级为游客，**不返回 1002**）
 
@@ -1089,7 +1089,7 @@ curl -s -X POST $BASE/posts/5/claims -H "Authorization: Bearer $ALICE" \
 }
 ```
 
-**校验顺序（SPEC 7.3，故意固定）**
+**校验顺序（设计规格 7.3，故意固定）**
 
 | # | 校验 | 失败 code |
 | --- | --- | --- |
@@ -1132,11 +1132,10 @@ curl -s -X POST $BASE/posts/5/claims -H "Authorization: Bearer $ALICE" \
 - 鉴权：**强制**
 - 权限：**仅帖主**。非帖主（**包括 admin**）一律 `1003`
 
-> ⚠️ **与 07 §5 的一处冲突**：07 写的是「仅帖主（或 admin）」，SPEC 8.4 写的是「仅帖主」。
-> 按 SPEC 开篇「本文件是唯一真源」取「仅帖主」，且 07 自己的验收清单第 6 条也要求
-> 「carol（seed 里 `role=admin`）查 bob 帖子的认领列表 → 1003」，两份证据同向。
-> 注意与 `PATCH /api/claims/:id` 的**刻意不对称**：审核允许 admin，读取不允许 ——
-> 审核是处置事故，读取是窥探纠纷细节，两者不该共用一个权限口径。
+> ⚠️ **这里有一处刻意的权限口径**：读取认领列表只允许帖主本人，admin 也会拿到 `1003`；
+> 而 `PATCH /api/claims/:id`（审核）允许 admin。两者刻意不对称 ——
+> 审核是处置事故，读取是窥探纠纷细节，不该共用一个权限口径。
+> seed 里的 `carol`（`role=admin`）可以复现这条边界。
 
 **查询参数**
 
@@ -1163,7 +1162,7 @@ curl "http://localhost:8080/api/posts/5/claims" -H "Authorization: Bearer $BOB"
 }
 ```
 
-帖主属于 SPEC 8.3 允许看到凭证码的两类人之一，因此列表里**会**返回 `voucher_code`。
+帖主属于 设计规格 8.3 允许看到凭证码的两类人之一，因此列表里**会**返回 `voucher_code`。
 
 **错误**
 
@@ -1186,7 +1185,7 @@ curl "http://localhost:8080/api/posts/5/claims" -H "Authorization: Bearer $BOB"
 
 **查询参数**
 
-`page`、`pageSize`。**没有 `status` 筛选**（SPEC 8.4 未定义），前端因此不做状态 Tab。
+`page`、`pageSize`。**没有 `status` 筛选**（设计规格 8.4 未定义），前端因此不做状态 Tab。
 
 **请求示例**
 
@@ -1374,7 +1373,7 @@ curl -X POST $BASE/claims/8/redeem -H "Authorization: Bearer $BOB" \
 
 #### GET /api/posts/:id/matches
 
-基于规则的相似度匹配（SPEC 7.4），返回可能与这张帖互补的帖子。
+基于规则的相似度匹配（设计规格 7.4），返回可能与这张帖互补的帖子。
 
 - 鉴权：**软鉴权**（游客也能看，只是 `author.contact` 一律为空）
 
@@ -1437,7 +1436,7 @@ curl "http://localhost:8080/api/posts/12/matches"
 
 ### 6.1 联系方式三级可见性
 
-SPEC 7.2 的硬要求：**在 SQL 层决定是否 SELECT `contact`，不要查出来再在内存里删**。
+设计规格 7.2 的硬要求：**在 SQL 层决定是否 SELECT `contact`，不要查出来再在内存里删**。
 
 `GET /api/posts/:id` 按以下四条规则依次判断（第 4 条为 P6 补齐）：
 

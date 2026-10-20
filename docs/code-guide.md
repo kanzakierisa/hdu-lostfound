@@ -5,8 +5,8 @@
 >
 > 全文分两部分：
 > - **第一部分（一～六章）**是本项目的完整技术说明，按「概览 → 目录 → 数据库 →
->   关键实现 → 安全 → 限制」组织，与 SPEC 的章节一一对应；
-> - **第二部分（附录）**是按开发阶段累积的「面试可讲点」明细（P1 / P3 / P5 / P6），
+>   关键实现 → 安全 → 限制」组织，与 设计规格的章节一一对应；
+> - **第二部分（附录）**是按开发阶段累积的「关键设计决策」明细（P1 / P3 / P5 / P6），
 >   包含大量踩坑记录与取舍理由，可作为第一部分的展开阅读。
 >
 > 如果你只有 10 分钟，读第一部分的一、四、五章即可抓住全貌。
@@ -33,9 +33,9 @@
 
 | 层 | 选型 | 为什么 |
 | --- | --- | --- |
-| 后端框架 | Go 1.27 + Gin | 任务指定；Gin 中间件模型清晰，便于把鉴权/日志/CORS 分层 |
-| 数据访问 | `database/sql` + `sqlx` | **任务硬要求：手写参数化 SQL，禁用 ORM**。sqlx 只做「结果集 → 结构体」的映射，不生成 SQL |
-| 数据库 | MySQL 8.0 | 任务指定；生成列、JSON 列、`FOR UPDATE` 都用到了 |
+| 后端框架 | Go 1.27 + Gin | Gin 中间件模型清晰，便于把鉴权/日志/CORS 分层 |
+| 数据访问 | `database/sql` + `sqlx` | **明确不用 ORM：手写参数化 SQL**。sqlx 只做「结果集 → 结构体」的映射，不生成 SQL |
+| 数据库 | MySQL 8.0 | 生成列、JSON 列、`FOR UPDATE` 都用到了 |
 | 认证 | JWT HS256 + bcrypt(cost=10) | 无状态、易水平扩展；bcrypt 自带盐与可调成本 |
 | 前端 | Vue 3（`<script setup>`）+ Vite + Vant 4 | 移动端优先；Vant 的组件与「校园随手拍」的使用场景吻合 |
 | 状态管理 | Pinia | 只有「当前用户」一个全局状态，Pinia 足够且比 Vuex 简洁 |
@@ -200,7 +200,7 @@ server/
 │   │   ├── user_service.go            查自己、改自己
 │   │   ├── post_service.go            帖子 CRUD + 状态机（导出 ValidateTransition）
 │   │   ├── claim_service.go           认领校验顺序、审核、核销、凭证码重试
-│   │   └── match_service.go           SPEC 7.4 打分与排序
+│   │   └── match_service.go           设计规格 7.4 打分与排序
 │   ├── store/                         手写 SQL 层（零 HTTP）
 │   │   ├── querier.go                 Querier 接口：抹平「连接池 or 事务」的差异
 │   │   ├── user_store.go              users 表 SQL
@@ -387,9 +387,9 @@ ERROR 1062 (23000): Duplicate entry '5-1' for key 'claims.uk_post_approved'
 
 ## 四、关键实现思路
 
-本章按 SPEC 第 7 章的编号逐节展开。每节统一用「**问题 → 解决 → 为什么**」三段。
+本章按 设计规格第 7 章的编号逐节展开。每节统一用「**问题 → 解决 → 为什么**」三段。
 
-### 4.1 状态机（SPEC 7.1）
+### 4.1 状态机（设计规格 7.1）
 
 **问题**：帖子有 `open → matched → closed` 的流转，且存在两条路径可以改变它：
 作者手动点按钮、认领流程自动联动。如果两处各写一套规则，迟早分叉。
@@ -428,10 +428,10 @@ changeStatusAsSystem // 系统自动：不加作者校验，直接调 applyStatu
   权限检查排在状态检查之前，越权者稳定拿到 403，不会因为「恰好状态也不允许」
   而拿到 1007 —— 那等于把帖子当前状态泄露给了无权操作它的人。
 
-### 4.2 联系方式三级可见性（SPEC 7.2）
+### 4.2 联系方式三级可见性（设计规格 7.2）
 
 **问题**：`author.contact` 是否可见，取决于请求者身份与业务关系（四条规则）；
-且 SPEC 硬要求**在 SQL 层决定是否 SELECT**，不能查出来再在内存里删。
+且 设计规格硬要求**在 SQL 层决定是否 SELECT**，不能查出来再在内存里删。
 
 **解决**：把整条判定写进 SELECT 列表的一个 `CASE` 表达式。
 
@@ -472,7 +472,7 @@ func postSelectArgs(withContact bool, viewerID int64) []any       // 孪生函�
 `model.ToPostDTO` 里还有一层「列表强制空串」的收窄，作为**纵深防御** ——
 将来谁改了 store 的 SELECT 清单，「列表不泄露联系方式」这条规则也不会失守。
 
-### 4.3 认领流程与凭证（SPEC 7.3）
+### 4.3 认领流程与凭证（设计规格 7.3）
 
 **问题**：认领是一个「多人竞争、有状态流转、有权限不对称」的流程，
 且要在并发下保证业务不变量。
@@ -486,7 +486,7 @@ func postSelectArgs(withContact bool, viewerID int64) []any       // 孪生函�
 | 行锁 | 审核/核销时 `SELECT ... FOR UPDATE` | 并发审核同一认领 |
 | 状态条件 | `UPDATE ... WHERE id = ? AND status = 'pending'` | 万一 `FOR UPDATE` 被误删，`RowsAffected==0` 会报错而非静默成功 |
 
-**校验顺序**（SPEC 7.3，故意固定）：
+**校验顺序**（设计规格 7.3，故意固定）：
 
 | # | 校验 | 失败 code |
 | --- | --- | --- |
@@ -535,7 +535,7 @@ func matchVoucher(stored *string, input string) bool {
 `subtle.ConstantTimeCompare` 在长度不同时返回 0，但**不保证**这种情况下的时间恒定。
 所以先比长度（长度不是秘密，凭证码固定 6 位），再对等长切片做恒定时间比较。
 
-### 4.4 智能匹配（SPEC 7.4）
+### 4.4 智能匹配（设计规格 7.4）
 
 **问题**：为一张帖推荐「可能互补」的帖（`lost` 找 `found`，反之亦然），
 需要可解释的相似度。
@@ -563,7 +563,7 @@ func matchVoucher(stored *string, input string) bool {
 逐行打分的 CPU 开销会失控。取最近的 200 条作为候选是「够用且可控」的折中 ——
 匹配本就是锦上添花，不需要全局最优。
 
-### 4.5 图片上传（SPEC 7.5）
+### 4.5 图片上传（设计规格 7.5）
 
 **问题**：用户上传的文件不可信，既要防「改了扩展名的可执行文件」，
 也要防路径穿越。
@@ -587,9 +587,9 @@ func matchVoucher(stored *string, input string) bool {
   比较时补 `os.PathSeparator` —— 避免 `/data/uploads-evil` 被 `/data/uploads`
   误判为「在目录内」
 
-### 4.6 列表、搜索与分页（SPEC 8.4 / 8.6）
+### 4.6 列表、搜索与分页（设计规格 8.4 / 8.6）
 
-**问题**：这是任务原文点名要练习 `WHERE / LIKE / ORDER BY / LIMIT / OFFSET` 的地方，
+**问题**：这是本项目重点练习 `WHERE / LIKE / ORDER BY / LIMIT / OFFSET` 的地方，
 也是最容易出现「看不到的 bug」的地方。
 
 **解决**：三个关键决策。
@@ -645,7 +645,7 @@ args = append(args, kw, kw, kw)
 也不是用 `CONCAT('%', ?, '%')` —— 后者把拼接动作推给数据库、掩盖了
 「参数就是纯数据」这件事。
 
-### 4.7 认证与鉴权（SPEC 9）
+### 4.7 认证与鉴权（设计规格 9）
 
 **问题**：JWT 与 bcrypt 的用法有多个经典坑。
 
@@ -806,7 +806,7 @@ jwt.ParseWithClaims(token, &Claims{}, keyFunc,
 
 登出仅前端清 token，已被签发的 token 在过期前依然有效。
 
-**不做的理由**：SPEC 第 12 章明确列入「明确不做」。引入黑名单需要额外存储
+**不做的理由**：设计规格第 12 章明确列入「明确不做」。引入黑名单需要额外存储
 与逐请求查询，对校园场景收益不明显。
 
 **生产化做法**：用 Redis 存「已登出 token 的 jti」并设 TTL（与 token 有效期一致），
@@ -816,7 +816,7 @@ jwt.ParseWithClaims(token, &Claims{}, keyFunc,
 
 2-gram 是字面相似度，无法理解「黑色卡套」与「黑色手机壳」是两类物品。
 
-**不做的理由**：任务要求可解释、可离线验证的规则化匹配。
+**不做的理由**：需求可解释、可离线验证的规则化匹配。
 引入向量检索需要额外基础设施与语料，超出本期范围。
 
 **生产化做法**：用句向量模型（如 bge-small）做语义召回，
@@ -836,7 +836,7 @@ jwt.ParseWithClaims(token, &Claims{}, keyFunc,
 `go test ./...` 全部返回 `[no test files]`。
 
 **不做的理由**：本项目的时间主要投在了「用手写 SQL 把业务做对」与
-「用真实 curl + 浏览器走查留存证据」上。SPEC 未要求自动化测试。
+「用真实 curl + 浏览器走查留存证据」上。设计规格未要求自动化测试。
 
 **生产化做法**：优先补三层 ——
 ① `pkg/*` 的纯函数单测（`similar`、`voucher`、`pagination`、`apperr`）；
@@ -847,7 +847,7 @@ jwt.ParseWithClaims(token, &Claims{}, keyFunc,
 
 登录接口没有防暴力破解的速率限制。
 
-**不做的理由**：SPEC 未要求；单机部署时在校验层做会引入额外状态。
+**不做的理由**：设计规格未要求；单机部署时在校验层做会引入额外状态。
 
 **生产化做法**：网关层按 IP + 用户名做滑动窗口限流，
 登录失败达阈值后叠加指数退避。
@@ -918,7 +918,7 @@ type UserLoader interface { Authenticate(c *gin.Context, userID int64) (*model.U
 再由 `router` 里的 `authLoader` 适配器把 `AuthService` 接上去。
 好处是中间件可独立单测（塞个假 parser 即可），且依赖方向保持树状不成环。
 
-### 关键设计决策（面试可讲点）
+### 关键设计决策（关键设计决策）
 
 #### 1. PATCH 的可选字段为什么必须用指针
 
@@ -1016,14 +1016,14 @@ token 里的 `uid` 只证明「**签发时**该用户存在」，无法反映「
   保证「一个帖子最多一条通过记录」（MySQL 唯一索引允许多个 NULL）
   → 见 **[3.3 核心亮点](#33-核心亮点用生成列--唯一索引表达最多一条已通过认领)**
 - 智能匹配的 2-gram 相似度打分与稳定排序
-  → 见 **[4.4 智能匹配（SPEC 7.4）](#44-智能匹配spec-74)**
+  → 见 **[4.4 智能匹配（设计规格 7.4）](#44-智能匹配spec-74)**
 
 ---
 
 ### 附录 C · P3 列表搜索、分页与状态机
 
-> 对应 SPEC 第 7.1 章（状态机）、第 8.4/8.6 章（列表接口与手写 SQL）。
-> 这是任务原文点名要求练习 `WHERE / LIKE / ORDER BY / LIMIT / OFFSET` 的地方。
+> 对应 设计规格第 7.1 章（状态机）、第 8.4/8.6 章（列表接口与手写 SQL）。
+> 这是本项目重点练习 `WHERE / LIKE / ORDER BY / LIMIT / OFFSET` 的地方。
 
 ### 文件职责
 
@@ -1039,7 +1039,7 @@ token 里的 `uid` 只证明「**签发时**该用户存在」，无法反映「
 `type ListFilter = store.ListFilter` 再导出一次筛选条件，就是为了让 handler 只依赖
 service 一层 —— handler 里出现 `store` 包，这套分层就不再是一条直线了。
 
-### 关键设计决策（面试可讲点）
+### 关键设计决策（关键设计决策）
 
 #### 1. `COUNT(*)` 与 `SELECT` 复用同一个 WHERE 构造器
 
@@ -1061,7 +1061,7 @@ func (s *PostStore) Count(ctx, f) {
 这是列表类接口最经典、也最难通过单个接口测试发现的 bug —— 因为第 1 页看起来完全正常。
 把条件构造收成一个纯函数，这类不一致在结构上就不可能发生。
 
-安全边界（SPEC 10）：拼进 SQL 的只有**硬编码的固定片段**（`" AND p.type = ?"` 这类常量），
+安全边界（设计规格 10）：拼进 SQL 的只有**硬编码的固定片段**（`" AND p.type = ?"` 这类常量），
 用户输入一律走 `?` 占位符。
 
 ```go
@@ -1146,8 +1146,8 @@ store 不越权替 service 下结论，也不把 `sql.ErrNoRows` 这类实现细
 
 #### 6. 联系方式可见性下推到 SQL 层
 
-SPEC 7.2 的硬要求是「在 SQL 层决定是否 SELECT `contact`，不要查出来再在内存里删」。
-P2 阶段为了先保证正确性是内存裁剪，P3 按 SPEC 把它下推了：
+设计规格 7.2 的硬要求是「在 SQL 层决定是否 SELECT `contact`，不要查出来再在内存里删」。
+P2 阶段为了先保证正确性是内存裁剪，P3 按 设计规格把它下推了：
 
 ```sql
 CASE
@@ -1168,7 +1168,7 @@ END AS author_contact
 `model.ToPostDTO` 里对 contact 的再次收窄（列表恒空串）保留下来，作为**纵深防御** ——
 将来谁改了 store 的 SELECT 清单，「列表不泄露联系方式」这条规则也不会失守。
 
-> ⚠️ SPEC 7.2 规则 4「双方存在已通过的认领关系 → 可见」依赖 `claims` 表查询，
+> ⚠️ 设计规格 7.2 规则 4「双方存在已通过的认领关系 → 可见」依赖 `claims` 表查询，
 > 属 P6 认领模块。P3 尚未接入，`contactCaseSQL` 的注释里标了扩展点。
 
 #### 7. 分页参数「夹取」而不是报错
@@ -1190,8 +1190,8 @@ func Parse(pageStr, sizeStr string) Page
 
 选「夹取」的理由：分页参数由前端按用户操作拼装，一个 `pageSize=999`
 不该让整个列表页变成 400；而 50 的上限是防「一次拉全表」的必要保护。
-这与 SPEC 8.2 错误码表里「分页越界 → 1001」的字面表述不同 ——
-以 SPEC 8.5 与阶段文件 04 的明确规则为准，并已在 `docs/api.md` 写明。
+这与 设计规格 8.2 错误码表里「分页越界 → 1001」的字面表述不同 ——
+以 设计规格 8.5 与阶段文件 04 的明确规则为准，并已在 `docs/api.md` 写明。
 
 列表筛选的枚举参数同理：非法值**静默忽略**（等同不筛选），策略与取舍已写进 `docs/api.md`。
 
@@ -1226,7 +1226,7 @@ func Parse(pageStr, sizeStr string) Page
 | `web/src/pages/PostDetailPage.vue` | 详情页。作者操作栏改为「编辑 / 改状态 / 删除」 |
 | `web/vite.config.js` | 新增 `preview.proxy`（Vite 的 preview **不继承** server.proxy） |
 
-### 关键设计决策（面试可讲点）
+### 关键设计决策（关键设计决策）
 
 #### 1. `van-uploader` 的 `beforeRead` 返回数组会被**静默忽略**
 
@@ -1377,7 +1377,7 @@ group 根节点没有这个类；选中态也没有 `.van-radio--checked`（勾�
 | `internal/store/claim_store.go` | 认领的全部 SQL；1062 → 业务码的翻译 |
 | `internal/service/claim_service.go` | 认领校验顺序、审核、核销、凭证码重试 |
 | `internal/pkg/similar/similar.go` | 中文 2-gram 集合与交集判定 |
-| `internal/service/match_service.go` | SPEC 7.4 打分与排序 |
+| `internal/service/match_service.go` | 设计规格 7.4 打分与排序 |
 | `internal/handler/claim_handler.go` / `match_handler.go` | 两组路由的 HTTP 编解码 |
 
 **前端**
@@ -1386,7 +1386,7 @@ group 根节点没有这个类；选中态也没有 `.van-radio--checked`（勾�
 | --- | --- |
 | `src/api/claim.js` | 5 个认领接口 + 1 个匹配接口 |
 | `src/components/ClaimCard.vue` | 一张认领卡，同时服务帖主视角与申请人视角 |
-| `src/components/HonorCertificate.vue` | 拾金不昧证书（canvas 绘制 + 导出 PNG，07 §11 彩蛋） |
+| `src/components/HonorCertificate.vue` | 拾金不昧证书（canvas 绘制 + 导出 PNG，设计规格 §11 彩蛋） |
 | `src/components/MatchList.vue` | 详情页「可能有这些匹配」区块 |
 | `src/pages/ClaimManagePage.vue` | 帖主审核台（选择帖子 → 通过/拒绝/核销） |
 | `src/pages/MyClaimsPage.vue` | 申请人视角的认领记录 |
@@ -1408,7 +1408,7 @@ handler ──→ service ──→ store ──→ database/sql
 
 ---
 
-### 关键设计决策（面试可讲点）
+### 关键设计决策（关键设计决策）
 
 #### 1. 「一张帖子最多一条已通过认领」为什么交给数据库
 
@@ -1512,7 +1512,7 @@ claim, err := s.claims.GetByIDForUpdate(ctx, tx, claimID)  // 锁到事务结束
 func (s *PostService) changeStatusAsSystem(ctx context.Context, tx *sqlx.Tx, postID int64, to string) error
 ```
 
-`tx` 参数是本阶段对 07 §3 的一处**有意加码**。07 给的签名没有事务参数，
+`tx` 参数是本阶段对 设计规格 §3 的一处**有意加码**。07 给的签名没有事务参数，
 但那样会出一个真实的一致性洞：认领更新在一个事务里，帖子状态在另一个连接上提交。
 如果帖子状态更新失败，认领已经 `approved`、帖子还停在 `open`，
 用户会看到「已通过但还在寻找中」。
@@ -1721,7 +1721,7 @@ van-list 不会重新挂载，所以必须手动 `fetchClaims()`。
 
 #### 16. `MatchList` 无匹配时整块不渲染
 
-07 §4 要求「无匹配时整个区块不渲染（不要显示空区块）」。
+设计规格 §4 要求「无匹配时整个区块不渲染（不要显示空区块）」。
 实现上不是渲染一个空盒子再 `v-if` 内容，而是：
 
 ```html
@@ -1748,9 +1748,9 @@ van-list 不会重新挂载，所以必须手动 `fetchClaims()`。
 第二个坑在**人工点一遍时也会遇到**，只是人会自动多等一会儿、or 挪一下位置。
 把它记录下来，比在 CI 里加一个 `sleep` 更有价值。
 
-#### 18. 拾金不昧证书：先纠正主语，再画图（07 §11 彩蛋）
+#### 18. 拾金不昧证书：先纠正主语，再画图（设计规格 §11 彩蛋）
 
-07 §11 建议把这个证书放在「我的认领」页，括注是「申请人视角转成『归还者视角』」。
+设计规格 §11 建议把这个证书放在「我的认领」页，括注是「申请人视角转成『归还者视角』」。
 但在这个系统里主语是反的：
 
 | 角色 | 在本系统里做了什么 |

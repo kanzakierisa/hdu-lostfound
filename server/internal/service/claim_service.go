@@ -235,7 +235,7 @@ func (s *ClaimService) Review(ctx context.Context, claimID int64, reviewer *mode
 	if err != nil {
 		return nil, apperr.Wrap(apperr.CodeInternal, err)
 	}
-	// 审核者是帖主，按 SPEC 8.3 属于「可以看见凭证码」的两类人之一。
+	// 审核者是帖主，按 设计规格 8.3 属于「可以看见凭证码」的两类人之一。
 	return model.ToClaimDTO(updated, true, false), nil
 }
 
@@ -359,7 +359,7 @@ func (s *ClaimService) Redeem(ctx context.Context, claimID int64, reviewer *mode
 		return nil, apperr.Newf(apperr.CodeInvalidParam, "该认领已被核销，请刷新后重试")
 	}
 
-	// 核销成功 → 帖子自动置 closed（SPEC 7.1「唯一可信路径」）。
+	// 核销成功 → 帖子自动置 closed（设计规格 7.1「唯一可信路径」）。
 	// matched → closed 命中白名单；万一帖子还停在 open（例如作者
 	// 手动把 matched 改回去过），open → closed 同样在白名单内。
 	// 两条路径都不需要在这里做 if 判断，白名单会放行其中合法的那一条。
@@ -382,15 +382,15 @@ func (s *ClaimService) Redeem(ctx context.Context, claimID int64, reviewer *mode
 //
 // 权限：**仅帖主**可见，其他人（包括 admin）一律 1003。
 //
-// ⚠️ 这里按 SPEC 8.4 实现（「仅帖主，返回该帖全部申请」），而不是
+// ⚠️ 这里按 设计规格 8.4 实现（「仅帖主，返回该帖全部申请」），而不是
 // 07 §5 写的「仅帖主（或 admin）」—— 两份文档在这一点上是冲突的，
-// 依据是 00-SPEC 开篇的「本文件是唯一真源」，且 07 自己的验收清单
+// 依据是 00-设计规格 开篇的「本文件是唯一真源」，且 07 自己的验收清单
 // 第 6 条也要求「carol（seed 里 role=admin）查 bob 帖子的认领列表 → 1003」。
 // 两者的结论一致指向「只认帖主」，因此 07 §5 的括号是笔误。
 //
-// 注意这与审核接口（PATCH /api/claims/:id）的权限**不同**：SPEC 8.4 对
+// 注意这与审核接口（PATCH /api/claims/:id）的权限**不同**：设计规格 8.4 对
 // 审核明确写了「仅帖主或 admin」，对列表却只写「仅帖主」。
-// 这个不对称是 SPEC 刻意的：admin 需要能处置违规认领（治理权），
+// 这个不对称是 设计规格 刻意的：admin 需要能处置违规认领（治理权），
 // 但没有理由让管理员能成批扫读所有申请人写下的私密特征证明（阅卷权）。
 //
 // 为什么 proof 不能公开：它是申请人写下的「只有失主知道的特征」，
@@ -418,7 +418,7 @@ func (s *ClaimService) ListByPost(
 		return nil, 0, apperr.Wrap(apperr.CodeInternal, err)
 	}
 
-	// 能走到这里说明 viewer 就是帖主，属于 SPEC 8.3 允许看见凭证码的两类人之一。
+	// 能走到这里说明 viewer 就是帖主，属于 设计规格 8.3 允许看见凭证码的两类人之一。
 	return model.ToClaimDTOs(rows, true, false), total, nil
 }
 
@@ -428,7 +428,7 @@ func (s *ClaimService) ListByPost(
 // 否则改一个 ?user_id= 就能翻别人的认领记录（含他们写下的 proof）。
 //
 // 这里带出 post 摘要并以 showVoucher=true 组装：调用者必然是申请人本人，
-// 属于 SPEC 8.3 允许看见自己凭证码的情形。
+// 属于 设计规格 8.3 允许看见自己凭证码的情形。
 func (s *ClaimService) ListMine(
 	ctx context.Context, claimantID int64, limit, offset int,
 ) ([]*model.ClaimDTO, int64, error) {

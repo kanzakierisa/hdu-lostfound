@@ -31,9 +31,9 @@ type User struct {
 	UpdatedAt     time.Time `db:"updated_at"`
 }
 
-// UserDTO 是用户对外的 JSON 形状，对应 SPEC 8.3 的 User。
+// UserDTO 是用户对外的 JSON 形状，对应 设计规格 8.3 的 User。
 //
-// 字段顺序与命名严格照 SPEC，时间统一 RFC3339（UTC）。
+// 字段顺序与命名严格照 设计规格，时间统一 RFC3339（UTC）。
 type UserDTO struct {
 	ID            int64  `json:"id"`
 	Username      string `json:"username"`
@@ -47,7 +47,7 @@ type UserDTO struct {
 // ToUserDTO 把实体转换为对外 DTO。
 //
 // 时间固定按 UTC 输出 RFC3339，不依赖 encoding/json 对 time.Time 的默认序列化
-// —— 后者会带上数据库连接的时区，容易造成前端显示差 8 小时（SPEC 02 常见坑 5）。
+// —— 后者会带上数据库连接的时区，容易造成前端显示差 8 小时（设计规格 02 常见坑 5）。
 func ToUserDTO(u *User) *UserDTO {
 	if u == nil {
 		return nil
@@ -83,11 +83,11 @@ type LoginReq struct {
 //
 // ⚠️ 三个字段全部用**指针**：只有请求里真正出现的字段才会被更新。
 // 若用 string，前端不传时会被 Go 解码成空串，把用户昵称/联系方式清空
-// —— 这是 SPEC 02「常见坑 1」点名的问题。
+// —— 这是 设计规格 02「常见坑 1」点名的问题。
 //
 // 结构体刻意**不包含** role / username / password_hash：
 // 即使请求体里带了这些键，encoding/json 也会因找不到目标字段而直接忽略，
-// 提权在解码阶段就被挡掉，不依赖后续逻辑谨慎处理（SPEC 10 安全基线）。
+// 提权在解码阶段就被挡掉，不依赖后续逻辑谨慎处理（设计规格 10 安全基线）。
 type UpdateMeReq struct {
 	Nickname      *string `json:"nickname"`
 	Contact       *string `json:"contact"`
@@ -102,7 +102,7 @@ type AuthResult struct {
 
 // RegisterResult 是注册成功返回的数据体。
 //
-// 按 SPEC 02 的约定，注册**不自动登录**，只返回用户信息，
+// 按 设计规格 02 的约定，注册**不自动登录**，只返回用户信息，
 // 前端拿到后跳转登录页由用户主动登录（已在 docs/api.md 中声明）。
 type RegisterResult struct {
 	User *UserDTO `json:"user"`

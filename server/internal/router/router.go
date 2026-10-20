@@ -77,7 +77,7 @@ func New(cfg *config.Config, pool *sqlx.DB) *gin.Engine {
 
 	// 上传文件的静态托管。注意挂在 /uploads（**不是** /api/uploads），
 	// 且必须在 api.Group 之外 —— 图片是公开资源，不应经过 /api 前缀，
-	// 也不应被 API 的鉴权中间件拦截（SPEC 03 要点 8）。
+	// 也不应被 API 的鉴权中间件拦截（设计规格 03 要点 8）。
 	engine.Static("/uploads", cfg.UploadDir)
 
 	api := engine.Group("/api")
@@ -87,7 +87,7 @@ func New(cfg *config.Config, pool *sqlx.DB) *gin.Engine {
 		// 公开接口：无需登录
 		api.POST("/auth/register", authHandler.Register)
 		api.POST("/auth/login", authHandler.Login)
-		// 列表对游客开放：浏览 / 搜索是路人也能用的能力（SPEC 用户故事 3）。
+		// 列表对游客开放：浏览 / 搜索是路人也能用的能力（设计规格 用户故事 3）。
 		// 联系方式不在列表里返回，因此公开它不会带来泄露面。
 		api.GET("/posts", postHandler.List)
 
@@ -115,7 +115,7 @@ func New(cfg *config.Config, pool *sqlx.DB) *gin.Engine {
 			authed.POST("/posts", postHandler.Create)
 			authed.PUT("/posts/:id", postHandler.Update)
 			authed.DELETE("/posts/:id", postHandler.Delete)
-			// 状态流转走 SPEC 7.1 白名单，仅作者可操作。
+			// 状态流转走 设计规格 7.1 白名单，仅作者可操作。
 			authed.PATCH("/posts/:id/status", postHandler.ChangeStatus)
 
 			// 认领链路：提交 → （仅帖主）查看 → 审核 → 核销。
@@ -143,7 +143,7 @@ type authLoader struct {
 // Authenticate 实现 middleware.UserLoader。
 //
 // 把 gin.Context 上的 *http.Request 转成 context.Context 传给 service，
-// 让数据库调用能随请求取消 —— 这也是 SPEC 3.3「DB 调用必须带 context」的落地。
+// 让数据库调用能随请求取消 —— 这也是 设计规格 3.3「DB 调用必须带 context」的落地。
 func (l *authLoader) Authenticate(c *gin.Context, userID int64) (*model.User, error) {
 	return l.auth.Authenticate(c.Request.Context(), userID)
 }

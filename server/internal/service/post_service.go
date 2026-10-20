@@ -14,7 +14,7 @@ import (
 	"hdu-lostfound/internal/store"
 )
 
-// 帖子字段的长度与数量约束（SPEC 8.5）。全部以 **rune** 计，不是字节 ——
+// 帖子字段的长度与数量约束（设计规格 8.5）。全部以 **rune** 计，不是字节 ——
 // 中文标题用 len() 会得到 3 倍数值，一个 22 字的中文标题会被误判超长。
 const (
 	maxPostTitleLen       = 64
@@ -39,7 +39,7 @@ type PostService struct {
 	// claims 只为「详情接口附上我自己的认领」（my_claim）而存在。
 	//
 	// 为什么不把这件事交给 handler 去调 ClaimService：那样 handler 就从
-	// 「HTTP 编解码」变成了「编排两个服务」，而 SPEC 3.3 要求 handler 薄到底。
+	// 「HTTP 编解码」变成了「编排两个服务」，而 设计规格 3.3 要求 handler 薄到底。
 	// 反过来让 PostService 依赖 ClaimStore 也不理想（帖子服务关心认领），
 	// 但 my_claim 在语义上确实是「帖子详情这个响应的一部分」，
 	// 由构造该响应的服务负责补齐，比让调用方拼装更不容易漏。
@@ -51,7 +51,7 @@ func NewPostService(posts *store.PostStore, users *store.UserStore, claims *stor
 	return &PostService{posts: posts, users: users, claims: claims}
 }
 
-// Create 创建帖子（SPEC 03 要点 4）。
+// Create 创建帖子（设计规格 03 要点 4）。
 //
 // 初始 status 固定为 open，**不接受前端传入** —— CreatePostReq 里
 // 根本没有 status 字段，请求体带了也会在解码阶段被丢弃。
@@ -74,7 +74,7 @@ func (s *PostService) Create(ctx context.Context, userID int64, req model.Create
 	return s.detailByID(ctx, id, model.PostView{ViewerID: userID})
 }
 
-// Update 更新帖子（SPEC 03 要点 5）。
+// Update 更新帖子（设计规格 03 要点 5）。
 //
 // 权限与状态检查顺序刻意如此：
 //  1. 先查帖子 → 不存在 1004
@@ -92,7 +92,7 @@ func (s *PostService) Update(ctx context.Context, postID, userID int64, req mode
 	if existing.UserID != userID {
 		return nil, apperr.New(apperr.CodeForbidden)
 	}
-	// closed 是终态，不可再编辑（SPEC 03 要点 5）。
+	// closed 是终态，不可再编辑（设计规格 03 要点 5）。
 	if existing.Status == valid.StatusClosed {
 		return nil, apperr.Newf(apperr.CodeInvalidStatus, "已结束的帖子不能再编辑")
 	}
@@ -123,7 +123,7 @@ func (s *PostService) Update(ctx context.Context, postID, userID int64, req mode
 	return s.detailByID(ctx, postID, model.PostView{ViewerID: userID})
 }
 
-// Delete 删除帖子（SPEC 03 要点 6）。
+// Delete 删除帖子（设计规格 03 要点 6）。
 //
 // 级联删除 claims 由数据库外键完成，这里不写第二份逻辑。
 func (s *PostService) Delete(ctx context.Context, postID, userID int64) error {
@@ -155,7 +155,7 @@ func (s *PostService) Detail(ctx context.Context, postID int64, view model.PostV
 // 若各自手写组装，容易漏掉 updated_at 的刷新或 author 字段的填充。
 //
 // 注意把 view.ViewerID 一路传给 store：联系方式是否可见是在 SQL 层
-// 决定的（SPEC 7.2），store 需要知道「这次是替谁查的」。
+// 决定的（设计规格 7.2），store 需要知道「这次是替谁查的」。
 //
 // P6 在此补上 my_claim（07 §5）：请求者已登录时，顺带查出他自己在这张
 // 帖子上提交的那条认领。这里是唯一需要它的地方，因为只有详情接口
@@ -185,7 +185,7 @@ func (s *PostService) detailByID(ctx context.Context, postID int64, view model.P
 // applyFields 校验并写入帖子的可编辑字段。
 //
 // 同一个方法服务创建与更新两条路径，保证两侧的校验规则**不可能不一致** ——
-// 这是 SPEC 03「校验规则同创建」的落地方式（复制粘贴两份校验迟早会漂移）。
+// 这是 设计规格 03「校验规则同创建」的落地方式（复制粘贴两份校验迟早会漂移）。
 // 校验失败一律返回 1001，并带上具体是哪个字段、为什么。
 func (s *PostService) applyFields(
 	p *model.Post,
@@ -336,7 +336,7 @@ func imagesOr(v *[]string, fallback model.Images) []string {
 // 就不再是一条直线了。
 type ListFilter = store.ListFilter
 
-// allowedTransitions 是 SPEC 7.1 的合法跳转白名单。
+// allowedTransitions 是 设计规格 7.1 的合法跳转白名单。
 //
 //	open ──▶ matched ──▶ closed
 //	  └──────────────────▶ closed
@@ -350,7 +350,7 @@ var allowedTransitions = map[string][]string{
 	valid.StatusClosed:  {},
 }
 
-// ValidateTransition 校验状态流转是否命中 SPEC 7.1 的白名单。
+// ValidateTransition 校验状态流转是否命中 设计规格 7.1 的白名单。
 //
 // 导出（首字母大写）是**刻意**的：P6 的认领流程在「审核通过」「核销」
 // 时需要触发帖子的自动流转，必须复用这一个函数。若在 claim_service 里
@@ -377,7 +377,7 @@ func ValidateTransition(from, to string) error {
 func (s *PostService) List(ctx context.Context, f ListFilter, view model.PostView, limit, offset int) ([]*model.PostDTO, int64, error) {
 	f = normalizeListFilter(f)
 
-	// 强制 InList：列表接口一律不返回 author.contact（SPEC 8.3 / 04 §4）。
+	// 强制 InList：列表接口一律不返回 author.contact（设计规格 8.3 / 04 §4）。
 	// 放在 service 里而不是指望 handler 记得设，是因为「忘记设」的后果是
 	// 整站用户的联系方式在一次列表请求里被批量带走。
 	view.InList = true

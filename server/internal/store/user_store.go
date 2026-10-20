@@ -1,6 +1,6 @@
 // Package store 承载全部 SQL 与数据库交互。
 //
-// 分层铁律（SPEC 3.3）：store 层**不允许出现 HTTP 概念** ——
+// 分层铁律（设计规格 3.3）：store 层**不允许出现 HTTP 概念** ——
 // 这里没有 gin、没有 status code、没有 request/response，
 // 只有 context、实体与 error。HTTP 语义由 handler 层负责翻译。
 package store
@@ -69,7 +69,7 @@ func (s *UserStore) Create(ctx context.Context, u *model.User) (int64, error) {
 // GetByID 按主键查询用户。
 //
 // 用户不存在时返回 apperr 1004（资源不存在），**不把 sql.ErrNoRows 漏给上层**
-// —— SPEC 02 常见坑 4 明确要求 SQL 层错误在本层收口。
+// —— 设计规格 02 常见坑 4 明确要求 SQL 层错误在本层收口。
 func (s *UserStore) GetByID(ctx context.Context, id int64) (*model.User, error) {
 	query := `SELECT` + userColumns + ` FROM users WHERE id = ?`
 
@@ -112,7 +112,7 @@ func (s *UserStore) ExistsUsername(ctx context.Context, username string) (bool, 
 // UpdateProfile 更新用户的可变资料字段。
 //
 // ⚠️ 字段名是**固定的 SQL 片段**，绝不接受调用方传入的列名 ——
-// 这是 SPEC 10「只允许拼接固定 SQL 片段，绝不允许拼接用户输入」的落地。
+// 这是 设计规格 10「只允许拼接固定 SQL 片段，绝不允许拼接用户输入」的落地。
 // 值一律走 ? 占位符。
 //
 // 注意：本方法**不校验受影响行数**。MySQL 的 RowsAffected 统计的是

@@ -29,7 +29,7 @@ type TokenParser interface {
 //
 // 为什么中间件需要它：token 里的 uid 只证明签发时用户存在，
 // 无法反映此刻是否已被删除。只信 token 会让已注销用户继续通行，
-// 因此验签通过后必须回源数据库拿完整用户（SPEC 02 第 6 节）。
+// 因此验签通过后必须回源数据库拿完整用户（设计规格 02 第 6 节）。
 type UserLoader interface {
 	Authenticate(c *gin.Context, userID int64) (*model.User, error)
 }
@@ -37,7 +37,7 @@ type UserLoader interface {
 // Auth 返回强制鉴权中间件。
 //
 // 处理链：取 Bearer token → 验签 → 回查数据库 → 把 *model.User 写入 context。
-// 任一环节失败都以 1002 中断请求，并返回 SPEC 8.1 的统一响应体。
+// 任一环节失败都以 1002 中断请求，并返回 设计规格 8.1 的统一响应体。
 func Auth(parser TokenParser, loader UserLoader) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, ok := extractBearerToken(c)

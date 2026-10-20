@@ -43,7 +43,7 @@ type Manager struct {
 // NewManager 创建一个 JWT 管理器。
 //
 // secret 为 HS256 密钥（来自配置，启动时已校验非空且非默认值）；
-// expireHours 为有效期小时数，非正数时回落 168（与 SPEC 默认值一致）。
+// expireHours 为有效期小时数，非正数时回落 168（与 设计规格 默认值一致）。
 func NewManager(secret string, expireHours int) *Manager {
 	if expireHours <= 0 {
 		expireHours = 168
@@ -96,7 +96,7 @@ func (m *Manager) Parse(token string) (int64, error) {
 			}
 			return m.secret, nil
 		},
-		// 关键：限定算法白名单，堵住 alg:none 攻击面（SPEC 02 常见坑 2）。
+		// 关键：限定算法白名单，堵住 alg:none 攻击面（设计规格 02 常见坑 2）。
 		jwt.WithValidMethods([]string{signingMethod.Alg()}),
 		// 显式要求 exp 存在且在有效期内。
 		jwt.WithExpirationRequired(),

@@ -28,7 +28,7 @@ const (
 	CategoryOther   = "other"
 )
 
-// 认领状态枚举（SPEC 6.1 claims.status 的列注释）。
+// 认领状态枚举（设计规格 6.1 claims.status 的列注释）。
 //
 //	pending  待审核
 //	approved 已通过（此时生成凭证码，帖子被联动置 matched）
@@ -47,7 +47,7 @@ const (
 	ClaimActionReject  = "reject"
 )
 
-// 三个枚举白名单，与 SPEC 第 6.1 节 DDL 的列注释一一对应。
+// 三个枚举白名单，与 设计规格 第 6.1 节 DDL 的列注释一一对应。
 var (
 	// ValidTypes 是合法的帖子类型集合。
 	ValidTypes = []string{TypeLost, TypeFound}
@@ -67,8 +67,8 @@ var (
 // `IN ('approved','redeemed')`：一旦将来新增一个「已成立」的状态，
 // 漏改任何一处的后果都很难自查 ——
 //
-//  1. SPEC 7.2 联系方式可见性的 hasApprovedClaim 判定；
-//  2. SPEC 7.3 规则 5「一个帖子最多一条通过记录」的应用层预检。
+//  1. 设计规格 7.2 联系方式可见性的 hasApprovedClaim 判定；
+//  2. 设计规格 7.3 规则 5「一个帖子最多一条通过记录」的应用层预检。
 //
 // 数据库侧对应的等价物是 claims.approved_flag 生成列，
 // 两侧的取值集合必须始终一致（见 sql/schema.sql）。

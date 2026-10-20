@@ -7,7 +7,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import Vant from 'vant'
 
-// ⚠️ 这一行不能少，少了 Vant 组件会渲染成裸 HTML（SPEC 05 常见坑 1）
+// ⚠️ 这一行不能少，少了 Vant 组件会渲染成裸 HTML（设计规格 05 常见坑 1）
 import 'vant/lib/index.css'
 
 import App from './App.vue'

@@ -7,7 +7,7 @@ import (
 // Claim 对应 claims 表的一行，并额外承载联表带出的申请人昵称与帖子摘要。
 //
 // 与 Post 一样把 JOIN 结果拍平成字段（sqlx 的 StructScan 只认列名到字段的
-// 一一映射），组装成 SPEC 8.3 的嵌套 JSON 由 ToClaimDTO 负责。
+// 一一映射），组装成 设计规格 8.3 的嵌套 JSON 由 ToClaimDTO 负责。
 //
 // ⚠️ 刻意**没有** approved_flag 字段：那一列是纯粹给唯一索引用的生成列
 // （见 sql/schema.sql 的说明），应用层既不读也不写，扫进来只会是噪音。
@@ -35,7 +35,7 @@ type Claim struct {
 // ClaimantBrief 是 ClaimDTO 内的申请人摘要。
 //
 // 只有 id 与 nickname：认领列表可能被帖主之外的人看到吗？不会（1003），
-// 但仍刻意不给 username / contact —— 联系方式是否可见由 SPEC 7.2 的规则
+// 但仍刻意不给 username / contact —— 联系方式是否可见由 设计规格 7.2 的规则
 // 在**帖子维度**决定，认领列表不是绕过它的第二条路径。
 type ClaimantBrief struct {
 	ID       int64  `json:"id"`
@@ -44,7 +44,7 @@ type ClaimantBrief struct {
 
 // ClaimPostBrief 是 ClaimDTO 内的帖子摘要。
 //
-// status 是 SPEC 8.3 示例之外的字段，但 07 阶段文件明确要求
+// status 是 设计规格 8.3 示例之外的字段，但 07 阶段文件明确要求
 // 「GET /api/users/me/claims 联表带出 post 摘要（id/title/type/status）」，
 // 用于在「我的认领」里直接标出该帖是否已结束，省掉 N 次详情请求。
 type ClaimPostBrief struct {
@@ -54,7 +54,7 @@ type ClaimPostBrief struct {
 	Status string `json:"status"`
 }
 
-// ClaimDTO 是认领记录的对外 JSON 形状，对应 SPEC 8.3 的 Claim。
+// ClaimDTO 是认领记录的对外 JSON 形状，对应 设计规格 8.3 的 Claim。
 type ClaimDTO struct {
 	ID           int64           `json:"id"`
 	PostID       int64           `json:"post_id"`
@@ -88,7 +88,7 @@ type MyClaimDTO struct {
 
 // ToClaimDTO 把认领实体按给定视角组装成对外 DTO。
 //
-// showVoucher 决定 voucher_code 是否真实带出（SPEC 8.3）：
+// showVoucher 决定 voucher_code 是否真实带出（设计规格 8.3）：
 //
 //	申请人本人查看 → true
 //	帖主查看       → true
@@ -152,7 +152,7 @@ func ToClaimDTOs(rows []Claim, showVoucher bool, withPost bool) []*ClaimDTO {
 // ToMyClaimDTO 组装帖子详情里的 my_claim。
 //
 // 这里 voucher_code 恒定带出：调用方只会在「viewer 就是这条认领的申请人」
-// 时才调用它，而申请人本人查看自己的凭证码是 SPEC 8.3 明确允许的两种情形之一。
+// 时才调用它，而申请人本人查看自己的凭证码是 设计规格 8.3 明确允许的两种情形之一。
 func ToMyClaimDTO(c *Claim) *MyClaimDTO {
 	if c == nil {
 		return nil

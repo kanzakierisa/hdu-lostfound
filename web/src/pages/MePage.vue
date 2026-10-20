@@ -247,7 +247,7 @@ function onLogout() {
         <van-icon name="user-o" size="26" color="#969799" />
       </div>
       <div class="me-page__ident">
-        <!-- 用户输入一律插值渲染，严禁 v-html（SPEC 9.4） -->
+        <!-- 用户输入一律插值渲染，严禁 v-html（设计规格 9.4） -->
         <div class="me-page__nickname">{{ nickname }}</div>
         <div class="me-page__username">@{{ userStore.user?.username || '—' }}</div>
       </div>

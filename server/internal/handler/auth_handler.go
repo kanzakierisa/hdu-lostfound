@@ -62,7 +62,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 // Logout 处理 POST /api/auth/logout。
 //
-// JWT 是无状态的，服务端不维护黑名单（SPEC 第 12 章明确不做），
+// JWT 是无状态的，服务端不维护黑名单（设计规格 第 12 章明确不做），
 // 因此这里只返回成功，由前端清除本地 token。
 func (h *AuthHandler) Logout(c *gin.Context) {
 	response.OKEmpty(c)

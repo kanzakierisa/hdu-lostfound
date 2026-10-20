@@ -31,7 +31,7 @@ const postFromClause = `
 	FROM posts p
 	JOIN users u ON u.id = p.user_id`
 
-// viewerActiveClaimExistsSQL 是 SPEC 7.2 规则 4 的判定表达式：
+// viewerActiveClaimExistsSQL 是 设计规格 7.2 规则 4 的判定表达式：
 // 「该帖子下存在一条 approved/redeemed 且申请人就是当前请求者的认领记录」。
 //
 // 它是一个相关子查询，唯一的 ? 是 viewerID。抽成常量是为了让下面
@@ -49,13 +49,13 @@ const viewerActiveClaimExistsSQL = `EXISTS(
 			  AND c.status IN ('approved', 'redeemed')
 		)`
 
-// contactCaseSQL 在 **SQL 层**决定是否把 u.contact 带进结果集（SPEC 7.2 硬要求）。
+// contactCaseSQL 在 **SQL 层**决定是否把 u.contact 带进结果集（设计规格 7.2 硬要求）。
 //
-// SPEC 7.2 明确要求「在 SQL 层决定是否 SELECT contact，不要查出来再在内存里删」。
+// 设计规格 7.2 明确要求「在 SQL 层决定是否 SELECT contact，不要查出来再在内存里删」。
 // 这里把可见性判断写进 SELECT 列表：不可见的行直接返回空串，
 // 真实联系方式根本不会离开数据库、更不会进入应用内存。
 //
-// 分支顺序即 SPEC 7.2 的判定顺序（任一条命中即返回，后面的不再求值）：
+// 分支顺序即 设计规格 7.2 的判定顺序（任一条命中即返回，后面的不再求值）：
 //
 //  1. u.id = ?                            → 请求者就是作者本人
 //  2. u.contact_public = 1 AND ? > 0      → 作者主动公开（且请求者是登录用户）
@@ -68,7 +68,7 @@ const viewerActiveClaimExistsSQL = `EXISTS(
 //
 // viewerID <= 0 时（游客 / 只关心权限的内部调用）第 3 个分支**根本不出现在
 // SQL 里**：条件恒假，带上它只会让数据库白做一次子查询。
-// 这与 SPEC 10「只允许拼接固定 SQL 片段」并不冲突 —— 拼进去的仍然是
+// 这与 设计规格 10「只允许拼接固定 SQL 片段」并不冲突 —— 拼进去的仍然是
 // 硬编码常量，用户的输入值始终走 ? 占位符。
 func contactCaseSQL(viewerID int64) string {
 	sql := `,
@@ -92,12 +92,12 @@ func contactCaseSQL(viewerID int64) string {
 // 在两个接口下的联系方式表现不一致。
 //
 // withContact 为 false 时**根本不 SELECT** u.contact：
-//   - 列表接口一律不外带联系方式（见 SPEC 8.3 / 阶段文件 04 §4），
+//   - 列表接口一律不外带联系方式（见 设计规格 8.3 / 阶段文件 04 §4），
 //     减少一次批量查询里的泄露面；
 //   - 更新 / 删除 / 状态流转只需要 user_id 与 status，更不需要它。
 //
 // viewer_has_approved_claim 则**始终**带出：它是 contact_visible 这个
-// 对外字段的判定输入（SPEC 7.2），列表接口虽然不带 contact，
+// 对外字段的判定输入（设计规格 7.2），列表接口虽然不带 contact，
 // 但仍要如实告诉前端「按规则本该可见」——前端据此渲染不同的提示文案。
 // 与 author_contact_public 一样，它本身不是敏感值，只是一个布尔。
 //
@@ -194,7 +194,7 @@ func (s *PostStore) Handle(tx *sqlx.Tx) Querier {
 
 // GetByID 按主键查询帖子，并联表带出作者昵称与联系方式。
 //
-// viewerID 决定 author_contact 是否真实带出（SPEC 7.2 的 SQL 层判定）：
+// viewerID 决定 author_contact 是否真实带出（设计规格 7.2 的 SQL 层判定）：
 // 传 0 表示游客或「本次流程不关心联系方式」，此时该列恒为空串。
 // 只做权限 / 状态判断的调用方（更新、删除、状态流转）传 0 即可。
 //
@@ -234,7 +234,7 @@ func (s *PostStore) getByID(ctx context.Context, q Querier, id int64, viewerID i
 //
 // ⚠️ 可更新的列是**固定的 SQL 片段**，绝不接受调用方传入列名 ——
 // type / status / user_id 因此不可能被本方法改写，这是
-// SPEC 10「只允许拼接固定 SQL 片段」与 SPEC 03 要点 5 的双重落地。
+// 设计规格 10「只允许拼接固定 SQL 片段」与 设计规格 03 要点 5 的双重落地。
 // 值一律走 ? 占位符。
 func (s *PostStore) Update(ctx context.Context, p *model.Post) error {
 	const query = `
@@ -285,7 +285,7 @@ type ListFilter struct {
 // 「翻到第 3 页突然空了，但 total 还显示有 200 条」——
 // 这是列表类接口最经典也最难自查的 bug。
 //
-// 安全边界（SPEC 10）：拼进 SQL 的只有**硬编码的固定片段**
+// 安全边界（设计规格 10）：拼进 SQL 的只有**硬编码的固定片段**
 // （" AND p.type = ?" 这类常量），用户输入一律走 ? 占位符。
 // 绝不允许出现 " AND p.title LIKE '%" + kw + "%'" 这种写法。
 func buildPostWhere(f ListFilter) (string, []any) {
@@ -411,7 +411,7 @@ func (s *PostStore) ListByUser(ctx context.Context, userID int64, status string,
 	return s.List(ctx, ListFilter{UserID: userID, Status: status}, viewerID, limit, offset)
 }
 
-// ListMatchCandidates 查询参与 AI 匹配打分的候选帖子（SPEC 7.4 / 07 第二部分）。
+// ListMatchCandidates 查询参与 AI 匹配打分的候选帖子（设计规格 7.4 / 07 第二部分）。
 //
 // 筛选条件全部由本方法固定，不接受调用方拼装：
 //

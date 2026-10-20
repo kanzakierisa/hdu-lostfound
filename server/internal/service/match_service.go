@@ -12,7 +12,7 @@ import (
 	"hdu-lostfound/internal/store"
 )
 
-// 匹配打分的四个维度与分值（SPEC 7.4）。写成常量而不是散在代码里的字面量：
+// 匹配打分的四个维度与分值（设计规格 7.4）。写成常量而不是散在代码里的字面量：
 // 这些数字会出现在 reasons 文案里，前端与文档都引用同一套语义，
 // 改分值时只可能改一处。
 const (
@@ -22,14 +22,14 @@ const (
 	scoreTitle    = 10 // 标题关键词重合
 )
 
-// matchThreshold 是「视为可能匹配」的总分下限（SPEC 7.4）。
+// matchThreshold 是「视为可能匹配」的总分下限（设计规格 7.4）。
 //
 // 60 分意味着至少命中两个维度（40+30 / 40+20 / 30+20+10 等组合），
 // 单独一个维度（最高 40）永远不够 —— 这恰好过滤掉「分类相同就推给你」
 // 这种最廉价的假阳性：全校的校园卡帖分类都相同。
 const matchThreshold = 60
 
-// matchMaxResults 是返回条数上限（SPEC 7.4）。
+// matchMaxResults 是返回条数上限（设计规格 7.4）。
 const matchMaxResults = 5
 
 // matchCandidateLimit 是参与打分的候选数量上限（07 第二部分 §2）。
@@ -48,7 +48,7 @@ const matchTimeWindow = 24 * time.Hour
 // Post 用 *model.PostDTO 而不是 07 里写的 *model.Post：
 //
 //	SQL 实体上没有 json tag，直接序列化会输出 Go 的字段名（ID、UserID…），
-//	既不符合 SPEC 8.3 的契约，也会顺带把 AuthorContact 这类内部字段带出去。
+//	既不符合 设计规格 8.3 的契约，也会顺带把 AuthorContact 这类内部字段带出去。
 //	DTO 走的是与列表/详情完全相同的裁剪逻辑，形状一致、责任清晰。
 type MatchResult struct {
 	Post    *model.PostDTO `json:"post"`
@@ -69,7 +69,7 @@ func NewMatchService(posts *store.PostStore) *MatchService {
 	return &MatchService{posts: posts}
 }
 
-// FindMatches 找出与指定帖子可能匹配的帖子列表（SPEC 7.4）。
+// FindMatches 找出与指定帖子可能匹配的帖子列表（设计规格 7.4）。
 //
 // 流程：
 //  1. 查目标帖 → 不存在 1004；
@@ -103,7 +103,7 @@ func (s *MatchService) FindMatches(ctx context.Context, postID int64, view model
 	// 组装结果时统一用「列表口径」：不返回联系方式。
 	// 就算请求者是登录用户也一样 —— 匹配区块的作用是导流到对方详情页，
 	// 让对方详情页按完整规则去决定联系方式是否可见，
-	// 而不是在这里开一个旁路（那会让 SPEC 7.2 的 SQL 层判定形同虚设）。
+	// 而不是在这里开一个旁路（那会让 设计规格 7.2 的 SQL 层判定形同虚设）。
 	candidateView := model.PostView{ViewerID: view.ViewerID, InList: true}
 
 	// 先收集「命中的候选 + 分数」，排序之后再转 DTO。
@@ -128,7 +128,7 @@ func (s *MatchService) FindMatches(ctx context.Context, postID int64, view model
 		hits = append(hits, hit{post: &candidates[i], score: score, reasons: reasons})
 	}
 
-	// 稳定排序：同分时按 happened_at 倒序（SPEC 7.4「排序需稳定」）。
+	// 稳定排序：同分时按 happened_at 倒序（设计规格 7.4「排序需稳定」）。
 	// 一级键是分数（高的在前），二级键是发生时间（新的在前）——
 	// 同分的情况下，「刚丢/刚捡」的那条更可能是当事人关心的。
 	sort.SliceStable(hits, func(i, j int) bool {
@@ -153,7 +153,7 @@ func (s *MatchService) FindMatches(ctx context.Context, postID int64, view model
 	return results, nil
 }
 
-// score 按 SPEC 7.4 的打分表计算总分与理由。
+// score 按 设计规格 7.4 的打分表计算总分与理由。
 //
 // 与 target 逐维度比较，命中即加分并把对应的解释文案追加进 reasons。
 // reasons 的顺序固定为「分值从高到低」，前端直接按顺序渲染标签即可，
@@ -164,7 +164,7 @@ func (s *MatchService) score(target, candidate *model.Post) (int, []string) {
 
 	// 分类相同：+40。
 	//
-	// 两个附加条件（SPEC 7.4 表格的备注）：
+	// 两个附加条件（设计规格 7.4 表格的备注）：
 	//   - 不为空：空分类说明数据缺失，不该当成一次「相同」；
 	//   - 不为 other：「其他」是一个兜底桶，把两条都归到 other 的帖子
 	//     判为同一类毫无信息量 —— 它们是「没法分类」而不是「同一类」。

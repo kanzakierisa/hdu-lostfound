@@ -55,7 +55,7 @@ func (h *PostHandler) Create(c *gin.Context) {
 
 // Detail 处理 GET /api/posts/:id。
 //
-// 鉴权：**软鉴权**。游客也能看，但联系方式按 SPEC 7.2 的三级规则裁剪；
+// 鉴权：**软鉴权**。游客也能看，但联系方式按 设计规格 7.2 的三级规则裁剪；
 // 登录用户还能拿到本人视角的 can_edit / can_claim。
 func (h *PostHandler) Detail(c *gin.Context) {
 	postID, ok := parseIDParam(c, "id")

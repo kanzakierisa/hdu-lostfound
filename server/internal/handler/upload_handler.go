@@ -19,7 +19,7 @@ import (
 	"hdu-lostfound/internal/pkg/response"
 )
 
-// 上传相关常量（SPEC 10 安全基线 + SPEC 03 要点 8）。
+// 上传相关常量（设计规格 10 安全基线 + 设计规格 03 要点 8）。
 const (
 	// formFileField 是 multipart 表单里约定的文件字段名。
 	formFileField = "file"
@@ -124,7 +124,7 @@ func (h *UploadHandler) Upload(c *gin.Context) {
 	}
 
 	// ⚠️ 关键：探测读走了 512 字节，必须把游标拨回起点，
-	// 否则下面 io.Copy 写出来的文件会缺失文件头（SPEC 03 常见坑 4）。
+	// 否则下面 io.Copy 写出来的文件会缺失文件头（设计规格 03 常见坑 4）。
 	if _, err := src.Seek(0, io.SeekStart); err != nil {
 		response.Fail(c, apperr.Wrap(apperr.CodeInvalidUpload, err))
 		return

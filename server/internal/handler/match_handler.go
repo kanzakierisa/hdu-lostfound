@@ -21,7 +21,7 @@ func NewMatchHandler(matches *service.MatchService) *MatchHandler {
 //
 // 游客也能看：匹配结果里不含联系方式（由 service 以列表口径组装 DTO），
 // 因此公开它不会带来任何泄露面，却能让「分享链接」这个场景完整可用
-// （SPEC 用户故事 3：路人打开链接也能看到「这条可能是同一件东西」）。
+// （设计规格 用户故事 3：路人打开链接也能看到「这条可能是同一件东西」）。
 //
 // 响应形状照 07 第二部分 §3 的规定，只有 list、没有分页字段 ——
 // 结果集上限恒为 5 条，分页参数没有意义。
@@ -41,7 +41,7 @@ func (h *MatchHandler) List(c *gin.Context) {
 		return
 	}
 
-	// 显式包一层 list：SPEC 8.1 的 data 形状约定里，列表类接口的 data
+	// 显式包一层 list：设计规格 8.1 的 data 形状约定里，列表类接口的 data
 	// 永远是一个对象而不是裸数组，这样将来要加字段（比如 total）也不必
 	// 破坏形状。
 	response.OK(c, gin.H{"list": list})

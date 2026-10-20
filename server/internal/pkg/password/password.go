@@ -1,7 +1,7 @@
 // Package password 封装 bcrypt 口令哈希。
 //
 // 设计要点：
-//  1. cost 固定为 10（SPEC 3.1 / 10 安全基线），高于默认的 10 以下的强度，
+//  1. cost 固定为 10（设计规格 3.1 / 10 安全基线），高于默认的 10 以下的强度，
 //     又能把单次校验耗时压在人可接受的量级，避免登录接口被拖慢。
 //  2. bcrypt 只接受前 72 字节，超长口令会被**静默截断**。
 //     本包不负责长度校验（由 service 层限制 ≤64 位），但 MaxPlainLength
@@ -14,7 +14,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Cost 是 bcrypt 的计算强度，SPEC 要求固定为 10。
+// Cost 是 bcrypt 的计算强度，设计规格 要求固定为 10。
 const Cost = 10
 
 // MaxPlainLength 是明文口令允许的最大字节数。

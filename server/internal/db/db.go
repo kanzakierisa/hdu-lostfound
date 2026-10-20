@@ -16,7 +16,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-// 连接池参数，与 SPEC 第 5 章一致。
+// 连接池参数，与 设计规格 第 5 章一致。
 const (
 	maxOpenConns    = 25
 	maxIdleConns    = 10

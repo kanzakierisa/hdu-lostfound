@@ -21,7 +21,7 @@ import (
 // 5000，而重试一次本可以成功。因此把它做成一个**类型化的哨兵错误**，
 // 让调用方用 errors.Is 判断后重新生成，而不是去解析错误文案。
 //
-// ⚠️ 为什么不像 apperr 那样做成业务错误码：SPEC 8.2 的错误码表是对外的
+// ⚠️ 为什么不像 apperr 那样做成业务错误码：设计规格 8.2 的错误码表是对外的
 // 契约，凭证码碰撞不构成任何一种「用户做错了什么」的情形，
 // 不应该、也没有合适的位置出现在对外错误表里。
 var ErrVoucherCodeConflict = errors.New("凭证码已被占用")
@@ -84,7 +84,7 @@ func (s *ClaimStore) BeginTx(ctx context.Context) (*sqlx.Tx, error) {
 
 // Create 插入一条认领申请，并把自增主键回填到 c.ID。
 //
-// ⚠️ 关键点（SPEC 7.3 规则 4/5 + 07 §2 第 8 条）：本方法必须把两个
+// ⚠️ 关键点（设计规格 7.3 规则 4/5 + 07 §2 第 8 条）：本方法必须把两个
 // 唯一键冲突分别翻译成不同的业务错误码，因为它们对用户是完全不同的两件事：
 //
 //	uk_post_claimant → 1008「你已经申请过了」
@@ -186,7 +186,7 @@ func (s *ClaimStore) GetByPostAndClaimant(ctx context.Context, postID, claimantI
 // （status IN ('approved','redeemed')）。
 //
 // 用途有二：
-//  1. SPEC 7.3 规则 5 的应用层预检 —— 让用户在提交前就拿到 1010，
+//  1. 设计规格 7.3 规则 5 的应用层预检 —— 让用户在提交前就拿到 1010，
 //     而不是等帖主审核时才被告知；数据库的 uk_post_approved 仍是最终兜底。
 //  2. 让 service 能区分「帖子变 matched 是认领通过导致的」这类上下文
 //     （P6 的帖子自动流转）。

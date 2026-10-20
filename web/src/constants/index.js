@@ -42,7 +42,7 @@ export const PAGE_SIZE = 10
 
 // ===== 图片上传约束 =====
 // 必须与后端保持一致，否则会出现「前端放行、后端 1009」的错位：
-// - MAX_IMAGES   → SPEC 8.5「images ≤ 3」
+// - MAX_IMAGES   → 设计规格 8.5「images ≤ 3」
 // - MAX_IMAGE_MB → 后端 UPLOAD_MAX_MB
 export const MAX_IMAGES = 3
 export const MAX_IMAGE_MB = 2

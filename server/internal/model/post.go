@@ -68,7 +68,7 @@ func (i *Images) Scan(src any) error {
 
 // Value 实现 driver.Valuer，把 Images 序列化为写入数据库的 JSON 文本。
 //
-// ⚠️ 关键点（SPEC 03 常见坑 1）：空切片必须序列化成 "[]" 而**不是 NULL**。
+// ⚠️ 关键点（设计规格 03 常见坑 1）：空切片必须序列化成 "[]" 而**不是 NULL**。
 // 如果返回 nil，数据库里会写入 NULL，前端随后拿到 `"images": null`，
 // `v-for` 直接抛错。这里统一交给 json.Marshal —— 它对空切片输出 "[]"，
 // 对 nil 切片也输出 "null"，所以下方额外把 nil 归一化为空切片。
@@ -88,7 +88,7 @@ func (i Images) Value() (driver.Value, error) {
 // 为什么把 author 拍平成 AuthorID / AuthorNickname 等字段而不是嵌套结构：
 // sqlx 的 StructScan 只认列名到字段的一一映射，嵌套结构需要额外的
 // 递归扫描支持。拍平后用 `u.nickname AS author_nickname` 就能直接扫进来，
-// 简单且无隐藏行为。组装成 SPEC 8.3 的嵌套 JSON 由 ToPostDTO 负责。
+// 简单且无隐藏行为。组装成 设计规格 8.3 的嵌套 JSON 由 ToPostDTO 负责。
 type Post struct {
 	ID          int64     `db:"id"`
 	UserID      int64     `db:"user_id"`
@@ -110,7 +110,7 @@ type Post struct {
 	AuthorContactPublic bool   `db:"author_contact_public"`
 
 	// ViewerHasApprovedClaim 表示「当前请求者在本帖下有 approved/redeemed 的
-	// 认领记录」，由 post_store 的相关子查询在 SQL 层算出（SPEC 7.2 规则 4）。
+	// 认领记录」，由 post_store 的相关子查询在 SQL 层算出（设计规格 7.2 规则 4）。
 	//
 	// ⚠️ 这个字段与 author_contact 出自**同一条 SQL**，这不是巧合而是必需的：
 	// 二者一个决定「联系方式有没有真实带出」，一个决定「contacts_visible 这个
@@ -120,12 +120,12 @@ type Post struct {
 	ViewerHasApprovedClaim bool `db:"viewer_has_approved_claim"`
 }
 
-// AuthorBrief 是 PostDTO 内的作者摘要，对应 SPEC 8.3 的 author 对象。
+// AuthorBrief 是 PostDTO 内的作者摘要，对应 设计规格 8.3 的 author 对象。
 //
 // 刻意**只有** id / nickname / contact / contact_visible 四个字段：
 // 没有 username、没有 role、更没有 password_hash。
 // 「帖子的 author 对象里不可能泄出哈希」不靠调用方自觉，
-// 而靠这里根本没有那个字段来保证（SPEC 03 收尾要求）。
+// 而靠这里根本没有那个字段来保证（设计规格 03 收尾要求）。
 type AuthorBrief struct {
 	ID             int64  `json:"id"`
 	Nickname       string `json:"nickname"`
@@ -133,7 +133,7 @@ type AuthorBrief struct {
 	ContactVisible bool   `json:"contact_visible"`
 }
 
-// PostDTO 是帖子的对外 JSON 形状，对应 SPEC 8.3 的 Post。
+// PostDTO 是帖子的对外 JSON 形状，对应 设计规格 8.3 的 Post。
 //
 // 所有时间字段都用 string（RFC3339 UTC），不用 time.Time —— 后者交给
 // encoding/json 序列化时会带上连接时区，导致前端差 8 小时。
@@ -162,7 +162,7 @@ type PostDTO struct {
 	// 已拒绝（带理由）/ 可以认领。若只给 can_claim，前端无法区分
 	// 「还没申请」与「申请了还在审」——那正是用户最容易困惑的状态。
 	//
-	// 刻意不加 omitempty：SPEC 8.1 的取向是「没有值时显式给 null」，
+	// 刻意不加 omitempty：设计规格 8.1 的取向是「没有值时显式给 null」，
 	// 字段时有时无会让前端的类型判断多一个分支。
 	MyClaim *MyClaimDTO `json:"my_claim"`
 }
@@ -185,13 +185,13 @@ type PostView struct {
 	// InList 表示本次 DTO 用于列表接口。
 	//
 	// 列表接口**一律**不返回 author.contact（哪怕规则判定可见），
-	// 用来减少一次批量查询里的联系方式泄露面（SPEC 03 要点 4：
+	// 用来减少一次批量查询里的联系方式泄露面（设计规格 03 要点 4：
 	// 「列表里 author.contact 一律为空串」），但 contact_visible 仍按规则计算，
 	// 前端据此在列表卡片上显示「登录后可见」之类的提示。
 	InList bool
 }
 
-// contactVisible 实现 SPEC 7.2 的联系方式三级可见性规则。
+// contactVisible 实现 设计规格 7.2 的联系方式三级可见性规则。
 //
 // 判定顺序即优先级，任一条命中即返回：
 //
@@ -225,9 +225,9 @@ func contactVisible(viewerID int64, authorID int64, authorContactPublic bool, ha
 
 // ToPostDTO 把实体按给定视角组装成对外 DTO。
 //
-// 联系方式是否对外暴露**已在 SQL 层决定**（SPEC 7.2 + post_store.go 的
+// 联系方式是否对外暴露**已在 SQL 层决定**（设计规格 7.2 + post_store.go 的
 // contactCaseSQL）：不可见的行，数据库直接返回空串，真实联系方式根本没
-// 进入过应用内存。P2 阶段那种「全查出来再在内存里删」的写法已按 SPEC
+// 进入过应用内存。P2 阶段那种「全查出来再在内存里删」的写法已按 设计规格
 // 要求下推掉，这是 P3 的一处刻意重构。
 //
 // 本函数里对 contact 的再次收窄不是重复劳动，而是**纵深防御**：
@@ -255,7 +255,7 @@ func ToPostDTO(p *Post, view PostView) *PostDTO {
 	// 混在一起会让审计日志说不清「谁改了内容」。
 	canEdit := view.ViewerID != 0 && view.ViewerID == p.UserID
 
-	// can_claim：按 SPEC 7.3 规则 1–3 的**静态条件**预判。游客恒为 false。
+	// can_claim：按 设计规格 7.3 规则 1–3 的**静态条件**预判。游客恒为 false。
 	//
 	// ⚠️ P6 明确决定**不**在这里查询「我是否已提交过认领」（规则 4）：
 	//   - 若查，列表接口就要为每一条帖子各跑一次 claims 查询（N+1），
@@ -323,7 +323,7 @@ type CreatePostReq struct {
 // ⚠️ 结构体**刻意不包含** type / status / user_id：
 // 即使请求体带了这些键，JSON 解码阶段就会因找不到目标字段而丢弃，
 // 「不允许修改 type 与 status」因此是解码层保证的，不依赖业务代码记得忽略。
-// 这是 SPEC 03 要点 5 的落地方式。
+// 这是 设计规格 03 要点 5 的落地方式。
 //
 // 全部字段为指针：PUT 的语义是「用请求体替换可编辑字段」，
 // 但为了让前端可以只送变动的字段，这里仍按局部更新处理 ——

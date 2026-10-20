@@ -61,7 +61,7 @@ func (h *ClaimHandler) Apply(c *gin.Context) {
 // ListByPost 处理 GET /api/posts/:id/claims（鉴权：强制，**仅帖主**）。
 //
 // 非帖主（含 admin）由 service 返回 1003 —— 这里不做「先取当前用户再比对」
-// 的判断，否则权限规则会出现两份。权限口径以 SPEC 8.4 为准（仅帖主），
+// 的判断，否则权限规则会出现两份。权限口径以 设计规格 8.4 为准（仅帖主），
 // 与 07 §5 括号里的「或 admin」不一致，取舍理由见 ClaimService.ListByPost。
 func (h *ClaimHandler) ListByPost(c *gin.Context) {
 	u := middleware.CurrentUser(c)
