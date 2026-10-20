@@ -636,9 +636,9 @@ MySQL 不保证两次查询的相对顺序一致，分页就会出现「第 1 �
 用户输入一律走 `?` 占位符：
 
 ```go
-where += " AND (p.title LIKE ? OR p.description LIKE ?)"
+where += " AND (p.title LIKE ? OR p.location LIKE ? OR p.description LIKE ?)"
 kw := "%" + f.Keyword + "%"
-args = append(args, kw, kw)
+args = append(args, kw, kw, kw)
 ```
 
 注意这里是**把 `%kw%` 作为参数传进去**，而不是拼接字符串，
@@ -1065,9 +1065,9 @@ func (s *PostStore) Count(ctx, f) {
 用户输入一律走 `?` 占位符。
 
 ```go
-where += " AND (p.title LIKE ? OR p.description LIKE ?)"
+where += " AND (p.title LIKE ? OR p.location LIKE ? OR p.description LIKE ?)"
 kw := "%" + f.Keyword + "%"
-args = append(args, kw, kw)
+args = append(args, kw, kw, kw)
 ```
 
 > 注意这里是**把 `%kw%` 作为参数传进去**，而不是写

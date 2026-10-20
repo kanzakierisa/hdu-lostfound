@@ -290,7 +290,9 @@ type ListFilter struct {
 // 绝不允许出现 " AND p.title LIKE '%" + kw + "%'" 这种写法。
 func buildPostWhere(f ListFilter) (string, []any) {
 	where := "WHERE 1 = 1"
-	args := make([]any, 0, 6)
+	// 容量按「条件最多时」给：type / status / category 各 1 个，
+	// keyword 占 3 个（title / location / description），user_id 1 个。
+	args := make([]any, 0, 7)
 
 	if f.Type != "" {
 		where += " AND p.type = ?"
@@ -305,16 +307,36 @@ func buildPostWhere(f ListFilter) (string, []any) {
 		args = append(args, f.Category)
 	}
 	if f.Keyword != "" {
-		// 用 "title OR description" 而不是只搜 title：用户搜「校园卡」时
-		// 标题写「黑色卡套」、特征写在描述里的帖子同样应当命中。
+		// 关键字同时匹配**标题、地点、描述**三列，与首页搜索框的提示语
+		// 「搜索物品、地点、描述」保持一致。
+		//
+		// 为什么必须有 location：失物招领场景里「在哪丢的 / 在哪捡的」是最自然的
+		// 检索维度，用户搜「图书馆」时想找的是所有发生在图书馆的帖子 —— 而那个词
+		// 常常只写在 location 里（标题「捡到一张校园卡」、描述「已交到前台」都不含）。
+		// 漏掉这一列，搜索的表现就是「只认标题 / 描述」，与搜索框的承诺不符。
+		//
+		// ⚠️ 三列的匹配顺序不影响结果（OR 可交换），但**必须**与下面
+		// args 的追加顺序严格对应：SQL 文本里第 N 个 ? 就吃 args 里的第 N 个值。
+		// 三处都是同一个 kw，就算写反也不会错；但将来若给某一列单独换个
+		// 前缀通配方案，顺序错了就会「查 title 却用了搜 location 的串」，
+		// 且不报任何错。保持「文本顺序 = 参数顺序」是唯一可持续的写法。
 		//
 		// 参数传 "%" + kw + "%" 而不是写成 CONCAT('%', ?, '%')：
 		// 后者把拼接动作推给数据库，前者让「参数就是纯数据」一目了然。
-		// MySQL 在 utf8mb4_unicode_ci 下 LIKE 不区分大小写，符合预期，
-		// 因此**不要**再加 LOWER() —— 那会让 title/description 上的索引失效。
-		where += " AND (p.title LIKE ? OR p.description LIKE ?)"
+		//
+		// 关于性能与索引，实话实说：`%kw%` 这种**两侧**通配的 LIKE
+		// 无法走 B+ 树索引（索引按前缀有序，而这里首字符就是通配符），
+		// 三列都一样，其中 description 上本来也没有索引。这不是「加了函数
+		// 才失效」，而是两侧通配本身就注定了全表扫 —— 所以**不要**为了
+		// 「优化」去加 LOWER() 或别的函数包装，那只会平白多一次逐行函数求值。
+		// MySQL 在 utf8mb4_unicode_ci 排序规则下 LIKE 本就不区分大小写，
+		// 大小写敏感的需求在这里不存在。
+		// 当前数据量（校园场景，帖子量级在千级以内）下全表扫可接受；
+		// 若将来量大到需要优化，正确方向是上全文索引（FULLTEXT + ngram 解析器），
+		// 而不是在 LIKE 上做文章。
+		where += " AND (p.title LIKE ? OR p.location LIKE ? OR p.description LIKE ?)"
 		kw := "%" + f.Keyword + "%"
-		args = append(args, kw, kw)
+		args = append(args, kw, kw, kw)
 	}
 	if f.UserID > 0 {
 		where += " AND p.user_id = ?"

@@ -672,7 +672,7 @@ curl -X POST http://localhost:8080/api/posts \
 | `type` | ∈ {`lost`, `found`} |
 | `status` | ∈ {`open`, `matched`, `closed`} |
 | `category` | ∈ {`card`,`digital`,`book`,`key`,`clothes`,`other`} |
-| `keyword` | 同时匹配 `title` 与 `description`，前空白会被 `TrimSpace`，为空视为未传 |
+| `keyword` | 同时匹配 `title`、`location`、`description` 三列（任一命中即可），前空白会被 `TrimSpace`，为空视为未传 |
 | `page` / `pageSize` | 见 [1.4 分页约定](#14-分页约定) |
 
 枚举非法静默忽略、分页越界夹取，规则见 [1.6](#16-筛选参数约定) 与 [1.4](#14-分页约定)。
@@ -683,8 +683,11 @@ curl -X POST http://localhost:8080/api/posts \
 # 默认列表（page=1, pageSize=10）
 curl "http://localhost:8080/api/posts"
 
-# 关键字搜索（命中 title 或 description）
+# 关键字搜索（命中 title / location / description 任一）
 curl --get "http://localhost:8080/api/posts" --data-urlencode "keyword=校园卡"
+
+# 按地点搜（「一教」只出现在 location 里，标题与描述都不含）
+curl --get "http://localhost:8080/api/posts" --data-urlencode "keyword=一教"
 
 # 分页
 curl "http://localhost:8080/api/posts?page=2&pageSize=5"
